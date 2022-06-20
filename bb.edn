@@ -1,0 +1,16 @@
+{:tasks {:requires ([clojure.string :as str]
+                    [babashka.fs :as fs])
+         :init (do
+                 (def zipname (first *command-line-args*)))
+         zip {:depends [temp-file]
+              :task (shell (format "tar -cf %s.zip -T %s" zipname temp-file))}
+         temp-file {:depends [strip-src]
+                    :task (let [fil (.toFile (fs/create-temp-file))]
+                            (spit fil (str/join "\n" strip-src))
+                            fil)}
+         strip-src {:depends [split-src]
+                    :task (remove (fn [path] (= path "src")) split-src)}
+         split-src {:depends [deps]
+                    :task (str/split deps (re-pattern ";"))}
+         deps {:depends []
+               :task (with-out-str (clojure "-Spath -Sdeps"))}}}
